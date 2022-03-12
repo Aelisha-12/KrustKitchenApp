@@ -1,4 +1,5 @@
 using KrustKitchen.Data;
+using KrustKitchen.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -31,9 +32,37 @@ namespace KrustKitchen
                 options.UseSqlServer(
                     Configuration.GetConnectionString("DefaultConnection")));
             services.AddDatabaseDeveloperPageExceptionFilter();
-            services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
-                .AddEntityFrameworkStores<ApplicationDbContext>();
+
+            // services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+            //   .AddEntityFrameworkStores<ApplicationDbContext>();
+
+            services.AddIdentity<MyIdentityUser, MyIdentityRole>(options =>
+             {
+                 options.SignIn.RequireConfirmedAccount = true;
+
+                 options.Password.RequireLowercase = true;
+                 options.Password.RequireUppercase = true;
+                 options.Password.RequireNonAlphanumeric = true;
+                 options.Password.RequiredLength = 8;
+
+                 options.User.RequireUniqueEmail = true;
+             })
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddDefaultTokenProviders();
+
+            services.
+                 ConfigureApplicationCookie(options =>
+                 {
+                     options.LoginPath = "/Identity/Account/Login";
+                     options.LogoutPath = "/Identity/Account/Logout";
+                     options.AccessDeniedPath = "/Identity/Account/AccessDenied";
+                     options.ExpireTimeSpan = TimeSpan.FromDays(20);
+                     options.SlidingExpiration = true;
+                 });
+
             services.AddRazorPages();
+
+           
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -61,6 +90,14 @@ namespace KrustKitchen
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapControllerRoute(
+                    name: "area",
+                    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
+
+                endpoints.MapControllerRoute(
+                    name: "default",
+                    pattern: "{controller}/{action=Index}/{id?}");
+
                 endpoints.MapRazorPages();
             });
         }
